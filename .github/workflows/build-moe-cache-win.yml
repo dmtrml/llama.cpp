@@ -1,0 +1,57 @@
+name: Build MoE cache Windows CUDA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout selected ref
+        uses: actions/checkout@v6
+
+      - name: Install CUDA 12.4
+        uses: ./.github/actions/windows-setup-cuda
+        with:
+          cuda_version: '12.4'
+          cuda_arch: x64
+
+      - name: Install Ninja
+        shell: powershell
+        run: choco install ninja -y
+
+      - name: Configure and build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          cmake -S . -B build -G "Ninja Multi-Config" ^
+            -DGGML_BACKEND_DL=ON ^
+            -DGGML_NATIVE=OFF ^
+            -DGGML_CUDA=ON ^
+            -DCMAKE_CUDA_ARCHITECTURES=86 ^
+            -DLLAMA_BUILD_TESTS=OFF ^
+            -DLLAMA_BUILD_EXAMPLES=OFF ^
+            -DLLAMA_BUILD_TOOLS=ON ^
+            -DLLAMA_BUILD_SERVER=ON ^
+            -DLLAMA_BUILD_BORINGSSL=ON
+          set /A NINJA_JOBS=%NUMBER_OF_PROCESSORS%-1
+          cmake --build build --config Release -j %NINJA_JOBS% --target llama-cli llama-server llama-bench
+
+      - name: Add CUDA runtime DLLs
+        shell: powershell
+        run: |
+          $dst = 'build\bin\Release'
+          Copy-Item "$env:CUDA_PATH\bin\cudart64_*.dll" $dst -ErrorAction SilentlyContinue
+          Copy-Item "$env:CUDA_PATH\bin\cublas64_*.dll" $dst -ErrorAction SilentlyContinue
+          Copy-Item "$env:CUDA_PATH\bin\cublasLt64_*.dll" $dst -ErrorAction SilentlyContinue
+
+      - name: Pack artifact
+        shell: powershell
+        run: 7z a -snl moe-cache-win-cuda-12.4-x64.zip .\build\bin\Release\*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: moe-cache-win-cuda-12.4-x64
+          path: moe-cache-win-cuda-12.4-x64.zip
+          retention-days: 7
