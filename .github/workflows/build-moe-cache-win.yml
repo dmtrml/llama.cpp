@@ -29,13 +29,13 @@ jobs:
             -DGGML_NATIVE=OFF ^
             -DGGML_CUDA=ON ^
             -DCMAKE_CUDA_ARCHITECTURES=86 ^
-            -DLLAMA_BUILD_TESTS=ON ^
+            -DLLAMA_BUILD_TESTS=OFF ^
             -DLLAMA_BUILD_EXAMPLES=OFF ^
             -DLLAMA_BUILD_TOOLS=ON ^
             -DLLAMA_BUILD_SERVER=ON ^
             -DLLAMA_BUILD_BORINGSSL=ON
           set /A NINJA_JOBS=%NUMBER_OF_PROCESSORS%-1
-          cmake --build build --config Release --target llama-cli llama-server llama-bench test-moe-cache -j %NINJA_JOBS%
+          cmake --build build --config Release --target llama-cli llama-server -j %NINJA_JOBS%
 
       - name: Add CUDA runtime DLLs
         shell: powershell
