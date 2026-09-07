@@ -134,8 +134,7 @@ struct ggml_cuda_moe_cache * ggml_cuda_moe_cache_get_or_create(
     size_t slot_size_bytes,
     int    n_slots);
 
-// Global teardown: free all per-device caches. Safe to call repeatedly.
-void ggml_cuda_moe_cache_free_all(void);
+// Global teardown is declared in public ggml-cuda.h so Windows DLL export attributes stay consistent.
 
 #ifdef __cplusplus
 }
